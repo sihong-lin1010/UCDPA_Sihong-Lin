@@ -27,9 +27,10 @@ location_select = ["Bahrain", "Bolivia", "Brazil", "Canada", "Chile", "China", "
                    "Mongolia", "Myanmar", "Nepal", "Netherlands", "Oman", "Philippines", "Portugal",
                    "Qatar", "Russia", "Seychelles", "Singapore", "South Korea", "Sweden", "Spain",
                    "Thailand", "Turkey", "Vietnam"]
+
 # *************************************************************************************************************
 # 1. Analyse vaccination progress based on a list of countries selected
-# fill the values using forward fill method
+# fill the missing values using forward fill method
 data["people_vaccinated_per_hundred"] = data["people_vaccinated_per_hundred"].fillna(method='ffill',axis=0,limit=100)
 data["people_fully_vaccinated_per_hundred"] = data["people_fully_vaccinated_per_hundred"].fillna(method='ffill',axis=0, limit=100)
 # extract selected countries' most recent vaccination data
@@ -38,9 +39,10 @@ for i in location_select:
     mid = data[data["location"] == i]
     mid = mid.sort_values("date")
     lis.append([mid.iloc[-1:]["people_vaccinated_per_hundred"].tolist()[0], mid.iloc[-1:]["people_fully_vaccinated_per_hundred"].tolist()[0]])
+
 df_1 = pd.DataFrame(lis)
 df_1.columns = "people_vaccinated_per_hundred","people_fully_vaccinated_per_hundred"
-
+df_1.index = location_select
 # Visualize the selected countries' vaccination progress
 plt.figure(figsize=(10,6),dpi=200)
 plt.barh(df_1.index,df_1.iloc[:,0],label="percentage of people vaccinated")
@@ -78,7 +80,7 @@ plt.legend()
 plt.show()
 
 # *************************************************************************************************************
-# 3. visualize mortality risk for 5 continents
+# 3. visualize changes in mortality rate for 5 continents
 df_2_1["case_fatality_rate"] = df_2_1["total_deaths"]/df_2_1["total_cases"]*100
 # calculate the mortality risk for Africa on a weekly basis
 df_2_2 = df_2_1[df_2_1["iso_code"] == "OWID_AFR"].set_index("date")[["case_fatality_rate"]].resample("w").sum()

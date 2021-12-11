@@ -2,16 +2,21 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import requests
+
+#parsing JSON data
+text = requests.get('https://covid.ourworldindata.org/data/owid-covid-data.json').json()
+print(text)
 
 # get data from csv file
-data = pd.read_csv("owid-covid-data.csv", parse_dates = ['date'])
+data = pd.read_csv("owid-covid-data.csv", parse_dates=['date'])
 
 # take a first look to understand data
-print(data.head())
-print(data.info())
-print(data.shape)
-print(data.isnull().sum())
-print([column for column in data])
+# print(data.head())
+# print(data.info())
+# print(data.shape)
+# print(data.isnull().sum())
+# print([column for column in data])
 
 # remove unwanted columns
 data = data.drop(['stringency_index', 'population', 'population_density', 'median_age', 'aged_65_older',
@@ -26,7 +31,7 @@ location_select = ["Bahrain", "Bolivia", "Brazil", "Canada", "Chile", "China", "
                    "Hungary", "India", "Indonesia", "Japan", "Kenya", "Latvia", "Malaysia", "Mexico",
                    "Mongolia", "Myanmar", "Nepal", "Netherlands", "Oman", "Philippines", "Portugal",
                    "Qatar", "Russia", "Seychelles", "Singapore", "South Korea", "Sweden", "Spain",
-                   "Thailand", "Turkey", "Vietnam"]
+                   "Thailand", "Turkey", "Vietnam", "United Arab Emirates", "United Kingdom", "United States"]
 
 # *************************************************************************************************************
 # 1. Analyse vaccination progress based on a list of countries selected
@@ -44,13 +49,19 @@ df_1 = pd.DataFrame(lis)
 df_1.columns = "people_vaccinated_per_hundred","people_fully_vaccinated_per_hundred"
 df_1.index = location_select
 # Visualize the selected countries' vaccination progress
-plt.figure(figsize=(10,6),dpi=200)
+plt.figure(figsize=(20,10),dpi=100)
 plt.barh(df_1.index,df_1.iloc[:,0],label="percentage of people vaccinated")
 plt.barh(df_1.index,df_1.iloc[:,1],label="percentage of people fully vaccinated")
 plt.legend(loc=2, bbox_to_anchor=(0.1, 1.07),framealpha=0,ncol=2)
 for k,i in enumerate(df_1.iloc[:,0]):
-    plt.text(i+0.2,k-0.4,round(i,2),size=8)
+    plt.text(i+0.2,k-0.4,round(i,2),size=6)
 plt.show()
+
+# define func1: high vaccination rate countries means its fully vaccination rate exceeds 70%
+def func1(x):
+    return x >= 70
+# whether the country is a high vaccination rate country
+print(func1(df_1['people_fully_vaccinated_per_hundred']))
 
 # *************************************************************************************************************
 # 2. visualize new cases per million for five continents
@@ -81,22 +92,22 @@ plt.show()
 
 # *************************************************************************************************************
 # 3. visualize changes in mortality rate for 5 continents
-df_2_1["case_fatality_rate"] = df_2_1["total_deaths"]/df_2_1["total_cases"]*100
+df_2_1["infection_fatality_rate"] = df_2_1["total_deaths"]/df_2_1["total_cases"]*100
 # calculate the mortality risk for Africa on a weekly basis
-df_2_2 = df_2_1[df_2_1["iso_code"] == "OWID_AFR"].set_index("date")[["case_fatality_rate"]].resample("w").sum()
+df_3 = df_2_1[df_2_1["iso_code"] == "OWID_AFR"].set_index("date")[["infection_fatality_rate"]].resample("w").sum()
 for i in ["OWID_ASI", "OWID_EUR", "OWID_NAM", "OWID_SAM"]:
-    mid_df = df_2_1[df_2_1["iso_code"] == i].set_index("date")[["case_fatality_rate"]].resample("w").sum()
+    mid_df = df_2_1[df_2_1["iso_code"] == i].set_index("date")[["infection_fatality_rate"]].resample("w").sum()
     # merge Africa's data with other 4 continents' data
-    df_2_2 = pd.merge(df_2_2,mid_df,how="left", on=df_2_2.index)
-    df_2_2 = df_2_2.set_index("key_0")
-df_2_2.columns = ["Africa", "Asia", "Europe", "North America", "South America"]
+    df_3 = pd.merge(df_3,mid_df,how="left", on=df_3.index)
+    df_3 = df_3.set_index("key_0")
+df_3.columns = ["Africa", "Asia", "Europe", "North America", "South America"]
 
 # Visualize data of 'mortality risk rate' for five continents
 plt.figure(figsize=(10,6),dpi=200)
-for index, row in df_2_2.T.iterrows():
+for index, row in df_3.T.iterrows():
     plt.plot(row,label=index)
 plt.xlabel("date")
-plt.ylabel("mortality risk rate (%)")
+plt.ylabel("infection fatality rate (%)")
 plt.legend()
 plt.show()
 
@@ -106,7 +117,8 @@ data.fillna(0, inplace=True)
 data_hot = data.iloc[:,[12,14,41,42]]
 # calculate the correlation coefficient
 corr = data_hot.corr()
-plt.figure(figsize=(6,6),dpi=200)
+plt.figure(figsize=(10,6),dpi=160)
 # visualize the correlation heatmap
 sns.heatmap(corr, cmap='GnBu_r', square=True, annot=True)
 plt.show()
+
